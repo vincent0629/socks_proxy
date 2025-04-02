@@ -432,12 +432,13 @@ void app_socket_pipe(int fd0, int fd1)
 	}
 }
 
-void *app_thread_process(void *fd)
+void *app_thread_process(void *arg)
 {
-	int net_fd = *(int *)fd;
+	int net_fd = *(int *)arg;
 	int version = 0;
 	int inet_fd = -1;
 	char methods = socks_invitation(net_fd, &version);
+	free(arg);
 
 	switch (version) {
 	case VERSION5: {
@@ -559,9 +560,10 @@ int app_loop()
 		}
         int one = 1;
         setsockopt(sock_fd, SOL_TCP, TCP_NODELAY, &one, sizeof(one));
+		int* arg = (int*)malloc(sizeof(int));
+		*arg = net_fd;
 		if (pthread_create
-		    (&worker, NULL, &app_thread_process,
-		     (void *)&net_fd) == 0) {
+		    (&worker, NULL, &app_thread_process, arg) == 0) {
 			pthread_detach(worker);
 		} else {
 			log_message("pthread_create()");
